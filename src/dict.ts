@@ -35,10 +35,12 @@ function main() {
     .alias('a')
     .description('add an element to <what>')
     .action((what, options) => {
-      const elements = program.args.slice(2);
-      const stmt = db.sql.prepare(`INSERT OR IGNORE INTO ${what} (name) VALUES (?)`);
-      for (const element of elements) {
-        stmt.run(element);
+      const args = program.args.slice(2);
+      if (what === 'languages') {
+        db.addLanguages(args);
+      } else if (what === 'words') {
+        db.addWords(args);
+      } else {
       }
     });
 
