@@ -2,43 +2,52 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { DB } from './db';
 
-function errorColor(str: string) {
-  return chalk.red(str);
+const VERSION = '0.0.1';
+
+if (require.main === module) {
+  main();
 }
 
 function main() {
+  const db = new DB('dict.db');
   const program = new Command();
   program
-    .version('3.14.16')
+    .version(VERSION)
     .configureOutput({
       outputError: (str, write) => write(errorColor(str))
     });
 
   program
-    .option('-d, --debug', 'output extra debugging')
-    .option('-s, --small', 'small pizza size')
-    .option('-p, --pizza-type <type>', 'flavour of pizza')
-    .option('-c, --config <path>', 'set config path', './deploy.conf');
-
-  program
-    .command('exec <script>')
-    .alias('ex')
-    .description('execute the given remote cmd')
-    .option('-e, --exec_mode <mode>', 'Which exec mode to use', 'fast')
-    .action((script, options) => {
-      console.log('read config from %s', program.opts().config);
-      console.log('exec "%s" using %s mode and config %s', script, options.exec_mode, program.opts().config);
+    .command('list <what>')
+    .alias('l')
+    .description('list the elements of <what>')
+    .action((what, options) => {
+      const stmt = db.sql.prepare(`SELECT * FROM ${what} ORDER BY name`);
+      for (const row of stmt.iterate()) {
+        console.log(row.name);
+      }
     });
 
-  program.parse(process.argv);
-  const options = program.opts();
-  if (options.debug) console.log(options);
-  console.log('pizza details:');
-  if (options.small) console.log('- small pizza size');
-  if (options.pizzaType) console.log(`- ${options.pizzaType}`);
+  program
+    .command('add <what>')
+    .alias('a')
+    .description('add an element to <what>')
+    .action((what, options) => {
+      const elements = program.args.slice(2);
+      const stmt = db.sql.prepare(`INSERT OR IGNORE INTO ${what} (name) VALUES (?)`);
+      for (const element of elements) {
+        stmt.run(element);
+      }
+    });
+
+  program.parse();
+  // console.log('----');
+  // console.log(program.args);
+  // console.log(program.processedArgs);
 }
 
-if (require.main === module) {
-  main();
+function errorColor(str: string) {
+  return chalk.red(str);
 }
