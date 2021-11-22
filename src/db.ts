@@ -31,6 +31,15 @@ interface StrToInt {
   [name: string]: number;
 }
 
+interface AddOptions {
+  categories: string;
+}
+
+interface Concept {
+  id: number;
+  part_id: number;
+}
+
 const DEFAULT_LANGUAGE = 'en';
 const DEFAULT_PART = 'noun';
 
@@ -60,32 +69,50 @@ export class DB {
     this.getLanguage();
   }
 
-  // public addLanguages(lang: string, names: Array<string>) {
-  //   const stmt = this.sql.prepare('INSERT OR IGNORE INTO languages (name) VALUES (?)');
-  //   for (const name of names) {
-  //     stmt.run(name);
-  //   }
-  //   this.hLangs = false;
-  // }
+  private showConcept(concept: Concept, name: string, count: number, seen: IntToBool) {
+    // TODO: better management of prepared statements
+    if (concept.id in seen) return;
+    seen[concept.id] = true;
 
-  // public addParts(lang: string, names: Array<string>) {
-  //   const stmt = this.sql.prepare('INSERT OR IGNORE INTO parts (name) VALUES (?)');
-  //   for (const name of names) {
-  //     stmt.run(name);
-  //   }
-  //   this.hParts = false;
-  // }
+    const stmt_sel_cc = this.sql.prepare('SELECT C.name FROM categories C JOIN category_concepts CC ON C.id = CC.category_id WHERE CC.concept_id = ? ORDER BY 1');
+    const stmt_sel_cww = this.sql.prepare('SELECT W.id, W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
+    const stmt_extra_noun_nl = this.sql.prepare('SELECT gender FROM extra_noun_nl WHERE word_id = ?');
+    const stmt_extra_noun_es = this.sql.prepare('SELECT gender FROM extra_noun_es WHERE word_id = ?');
+    const pid = concept.part_id;
+    if (count > 0) console.log('');
+
+    const cats = stmt_sel_cc.all(concept.id).map(c => c.name);
+    const part = this.iParts[pid];
+    console.log(`[${name}] => ${part} [${concept.id}] (${cats.join(', ')})`);
+    for (const word of stmt_sel_cww.iterate(concept.id)) {
+      const lang = this.iLangs[word.language_id];
+      const xtab = `extra_${part}_${lang}`;
+      let display = word.name;
+      switch (xtab) {
+        case  'extra_noun_nl':
+          const data_nl = stmt_extra_noun_nl.get(word.id);
+          if (data_nl) {
+            display += ` (${data_nl.gender})`;
+          }
+          break;
+        case  'extra_noun_es':
+          const data_es = stmt_extra_noun_es.get(word.id);
+          if (data_es) {
+            display += ` (${data_es.gender})`;
+          }
+          break;
+      }
+      console.log(`${lang} ${display}`);
+    }
+  }
 
   public searchWords(lang: string, names: Array<string>) {
     const l = this.getLanguage(lang);
     const stmt_sel_wnl = this.sql.prepare('SELECT id FROM words WHERE name LIKE ? AND language_id = ?');
     const stmt_sel_wn  = this.sql.prepare('SELECT id FROM words WHERE name LIKE ?');
     const stmt_sel_cwc = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? ORDER BY 2, 1');
-    const stmt_sel_cww = this.sql.prepare('SELECT W.id, W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
-    const stmt_extra_noun_nl = this.sql.prepare('SELECT gender FROM extra_noun_nl WHERE word_id = ?');
-    const stmt_extra_noun_es = this.sql.prepare('SELECT gender FROM extra_noun_es WHERE word_id = ?');
     let count = 0;
-    let concept_seen: IntToBool = {};
+    let seen: IntToBool = {};
     for (const name of names) {
       let wl = -1;
       let wn = name;
@@ -98,46 +125,57 @@ export class DB {
       const words = wl < 0 ? stmt_sel_wn.all(pat) : stmt_sel_wnl.all(pat, wl);
       for (const word of words) {
         for (const concept of stmt_sel_cwc.iterate(word.id)) {
-          if (concept.id in concept_seen) continue;
-          concept_seen[concept.id] = true;
-          const pid = concept.part_id;
-          if (count > 0) console.log('');
-          const part = this.iParts[pid];
-          console.log(`[${wn}] => ${part}`);
-          for (const word of stmt_sel_cww.iterate(concept.id)) {
-            const lang = this.iLangs[word.language_id];
-            const xtab = `extra_${part}_${lang}`;
-            let display = word.name;
-            switch (xtab) {
-              case  'extra_noun_nl':
-                const data_nl = stmt_extra_noun_nl.get(word.id);
-                if (data_nl) {
-                  display += ` (${data_nl.gender})`;
-                }
-                break;
-              case  'extra_noun_es':
-                const data_es = stmt_extra_noun_es.get(word.id);
-                if (data_es) {
-                  display += ` (${data_es.gender})`;
-                }
-                break;
-            }
-            console.log(`${lang} ${display}`);
-          }
-          ++count;
+          this.showConcept(concept, wn, count++, seen);
         }
       }
     }
   }
 
-  public listWords() {
-    const stmt = this.sql.prepare(`SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id ORDER BY 1, 2`);
+  public listWords(lang: string) {
+    const stmt = this.sql.prepare('SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id ORDER BY 1, 2');
     for (const row of stmt.iterate()) {
       console.log(row.language, row.word);
     }
   }
 
-  public addWords(lang: string, part: string, names: Array<string>) {
+  public showWords(lang: string, names: Array<string>) {
+    if (names.length <= 0) {
+      console.log('Known categories:');
+      const stmt = this.sql.prepare('SELECT name FROM categories ORDER BY 1');
+      for (const row of stmt.iterate()) {
+        console.log(row.name);
+      }
+      return;
+    }
+
+    const stmt_sel_cat = this.sql.prepare('SELECT id, name FROM categories WHERE name LIKE ?');
+    const stmt_sel_con = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN category_concepts CC ON C.id = CC.concept_id WHERE CC.category_id = ? ORDER BY 2, 1');
+    let count = 0;
+    let seen: IntToBool = {};
+    for (const name of names) {
+      const pat = `%${name}%`;
+      for (const cat of stmt_sel_cat.iterate(pat)) {
+        for (const concept of stmt_sel_con.iterate(cat.id)) {
+          this.showConcept(concept, cat.name, count++, seen);
+        }
+      }
+    }
+  }
+
+  public addWords(lang: string, part: string, names: Array<string>, options: AddOptions) {
+    console.log('OPTIONS', options);
+    const stmt_ins_cat = this.sql.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
+    const stmt_sel_cat = this.sql.prepare('SELECT id, name FROM categories WHERE name = ?');
+    const stmt_ins_cc = this.sql.prepare('INSERT OR IGNORE INTO category_concepts (category_id, concept_id) VALUES (?, ?)');
+    const cats: StrToInt = {};
+    const categories = options.categories || '';
+    for (const category of categories.split(',')) {
+      stmt_ins_cat.run(category);
+      const data = stmt_sel_cat.get(category);
+      if (data) {
+        cats[data.name] = data.id;
+      }
+    }
     const l = this.getLanguage(lang);
     const p = this.getPart(part);
     const words: StrToInt = {};
@@ -208,6 +246,9 @@ export class DB {
       return;
     }
     console.log(`will use concept id ${cid}`);
+    for (const cat of Object.keys(cats)) {
+      stmt_ins_cc.run(cats[cat], cid);
+    }
     const stmt_ins_cw = this.sql.prepare('INSERT OR IGNORE INTO concept_words (concept_id, word_id) VALUES (?, ?)');
     for (const word of Object.keys(words)) {
       // TODO: we could skip words that we know are already there for the concept
@@ -270,6 +311,14 @@ export class DB {
       {
         name: 'concept_words',
         definition: '(concept_id INTEGER NOT NULL, word_id INTEGER NOT NULL, PRIMARY KEY (concept_id, word_id), FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE, FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)',
+      },
+      {
+        name: 'categories',
+        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, UNIQUE(name))',
+      },
+      {
+        name: 'category_concepts',
+        definition: '(category_id INTEGER NOT NULL, concept_id INTEGER NOT NULL, PRIMARY KEY (category_id, concept_id), FOREIGN KEY (category_id) REFERENCES categories(id) ON UPDATE CASCADE, FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE)',
       },
 
       {

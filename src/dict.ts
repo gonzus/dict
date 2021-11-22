@@ -22,13 +22,13 @@ function main() {
   ;
 
   program
-    .command('search <words>')
+    .command('search')
     .alias('s')
+    .argument('<words...>')
     .description('search for words matching input')
-    .action((options) => {
+    .action((words, options) => {
       const lang = program.opts().lang;
-      const args = program.args.slice(1);
-      db.searchWords(lang, args);
+      db.searchWords(lang, words);
     })
   ;
 
@@ -37,19 +37,34 @@ function main() {
     .alias('l')
     .description('list known words')
     .action((options) => {
-      db.listWords();
+      const lang = program.opts().lang;
+      db.listWords(lang);
     })
   ;
 
-  // TODO: have a merge command?
   program
-    .command('add <part> <words...>')
-    .alias('a')
-    .description('add a list of words acting as the stated part')
-    .action((part, options) => {
+    .command('show')
+    .alias('w')
+    .argument('[categories...]')
+    .description('show words in categories')
+    .action((categories, options) => {
       const lang = program.opts().lang;
-      const args = program.args.slice(2);
-      db.addWords(lang, part, args);
+      db.showWords(lang, categories);
+    })
+  ;
+
+  // TODO: add a merge command to merge sets of concepts
+
+  program
+    .command('add')
+    .alias('a')
+    .argument('<part>')
+    .argument('<words...>')
+    .description('add a list of words acting as the stated part')
+    .option('-c, --categories <categories>', 'Optional categories for added words', '')
+    .action((part, words, options) => {
+      const lang = program.opts().lang;
+      db.addWords(lang, part, words, options);
     })
   ;
 
