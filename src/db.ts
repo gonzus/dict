@@ -1,4 +1,31 @@
+// Very useful query:
+//
+// select C.id, P.name, W.name, L.name from concepts C JOIN parts P on C.part_id = P.id JOIN concept_words CW ON C.id = CW.concept_id JOIN words W ON CW.word_id = W.id JOIN languages L ON W.language_id = L.id order by 1, 2, 3, 4;
+//   1|noun|boy|en
+//   1|noun|niño|es
+//   2|noun|jongen|nl
+//   2|noun|ragazzo|it
+//   3|verb|comer|es
+//   3|verb|eat|en
+//   3|verb|eten|nl
+//   4|noun|comida|es
+//   4|noun|eten|nl
+//   4|noun|food|en
+//   5|noun|girl|en
+//   5|noun|meisje|nl
+//   6|noun|estudiante|es
+//   6|noun|student|en
+//   6|noun|student|nl
+
 import Database from 'better-sqlite3';
+
+interface IntToBool {
+  [name: number]: boolean;
+}
+
+interface IntToStr {
+  [name: number]: string;
+}
 
 interface StrToInt {
   [name: string]: number;
@@ -9,8 +36,14 @@ const DEFAULT_PART = 'noun';
 
 export class DB {
   public sql;
-  private languages: StrToInt | null = null;
-  private parts: StrToInt | null = null;
+
+  private hLangs = false;
+  private nLangs: StrToInt = {};
+  private iLangs: IntToStr = {};
+
+  private hParts = false;
+  private nParts: StrToInt = {};
+  private iParts: IntToStr = {};
 
   /**
    * Class constructor.
@@ -23,6 +56,8 @@ export class DB {
     this.setup();
     this.create();
     this.populate();
+    this.getPart();
+    this.getLanguage();
   }
 
   // public addLanguages(lang: string, names: Array<string>) {
@@ -30,7 +65,7 @@ export class DB {
   //   for (const name of names) {
   //     stmt.run(name);
   //   }
-  //   this.languages = null;
+  //   this.hLangs = false;
   // }
 
   // public addParts(lang: string, names: Array<string>) {
@@ -38,8 +73,42 @@ export class DB {
   //   for (const name of names) {
   //     stmt.run(name);
   //   }
-  //   this.parts = null;
+  //   this.hParts = false;
   // }
+
+  public searchWords(lang: string, names: Array<string>) {
+    const l = this.getLanguage(lang);
+    const stmt_sel_wnl = this.sql.prepare('SELECT id FROM words WHERE name LIKE ? AND language_id = ?');
+    const stmt_sel_wn  = this.sql.prepare('SELECT id FROM words WHERE name LIKE ?');
+    const stmt_sel_cwc = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? ORDER BY 2, 1');
+    const stmt_sel_cww = this.sql.prepare('SELECT W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
+    let count = 0;
+    let concept_seen: IntToBool = {};
+    for (const name of names) {
+      let wl = -1;
+      let wn = name;
+      if (name.indexOf(':') >= 0) {
+        const [sl, sn] = name.split(':');
+        wl = this.getLanguage(sl);
+        wn = sn;
+      }
+      const pat = `%${wn}%`;
+      const words = wl < 0 ? stmt_sel_wn.all(pat) : stmt_sel_wnl.all(pat, wl);
+      for (const word of words) {
+        for (const concept of stmt_sel_cwc.iterate(word.id)) {
+          if (concept.id in concept_seen) continue;
+          concept_seen[concept.id] = true;
+          const pid = concept.part_id;
+          if (count > 0) console.log('');
+          console.log(`Searching for [${wn}] => ${this.iParts[pid]}`);
+          for (const word of stmt_sel_cww.iterate(concept.id)) {
+            console.log(`=> ${this.iLangs[word.language_id]} ${word.name}`);
+          }
+          ++count;
+        }
+      }
+    }
+  }
 
   public addWords(lang: string, part: string, names: Array<string>) {
     const l = this.getLanguage(lang);
@@ -103,25 +172,31 @@ export class DB {
   }
 
   private getLanguage(name = '') {
-    if (!this.languages) {
+    if (!this.hLangs) {
       const stmt = this.sql.prepare('SELECT * FROM languages');
-      this.languages = {};
+      this.nLangs = {};
+      this.iLangs = {};
       for (const row of stmt.iterate()) {
-        this.languages[row.name] = row.id;
+        this.nLangs[row.name] = row.id;
+        this.iLangs[row.id] = row.name;
       }
+      this.hLangs = true;
     }
-    return this.languages[name || DEFAULT_LANGUAGE];
+    return this.nLangs[name || DEFAULT_LANGUAGE];
   }
 
   private getPart(name = '') {
-    if (!this.parts) {
+    if (!this.hParts) {
       const stmt = this.sql.prepare('SELECT * FROM parts');
-      this.parts = {};
+      this.nParts = {};
+      this.iParts = {};
       for (const row of stmt.iterate()) {
-        this.parts[row.name] = row.id;
+        this.nParts[row.name] = row.id;
+        this.iParts[row.id] = row.name;
       }
+      this.hParts = true;
     }
-    return this.parts[name || DEFAULT_PART];
+    return this.nParts[name || DEFAULT_PART];
   }
 
   private setup() {

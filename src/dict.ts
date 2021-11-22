@@ -22,6 +22,17 @@ function main() {
   ;
 
   program
+    .command('search <words>')
+    .alias('s')
+    .description('search for words matching input')
+    .action((options) => {
+      const lang = program.opts().lang;
+      const args = program.args.slice(1);
+      db.searchWords(lang, args);
+    })
+  ;
+
+  program
     .command('list')
     .alias('l')
     .description('list known words')
