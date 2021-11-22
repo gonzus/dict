@@ -21,7 +21,7 @@ export class DB {
     this.create();
   }
 
-  public addLanguages(names: Array<string>) {
+  public addLanguages(lang: string, names: Array<string>) {
     const stmt = this.sql.prepare(`INSERT OR IGNORE INTO languages (name) VALUES (?)`);
     for (const name of names) {
       stmt.run(name);
@@ -29,18 +29,11 @@ export class DB {
     this.langs = null;
   }
 
-  public addWords(names: Array<string>) {
+  public addWords(lang: string, names: Array<string>) {
+    const l = this.getLanguage(lang);
     const stmt = this.sql.prepare(`INSERT OR IGNORE INTO words (name, language_id) VALUES (?, ?)`);
     for (let name of names) {
-      let lang = 0;
-      if (name.indexOf(':') < 0) {
-        lang = this.getLanguage();
-      } else {
-        const [l, n] = name.split(':');
-        lang = this.getLanguage(l);
-        name = n;
-      }
-      stmt.run(name, lang);
+      stmt.run(name, l);
     }
   }
 

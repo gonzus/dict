@@ -17,7 +17,9 @@ function main() {
     .version(VERSION)
     .configureOutput({
       outputError: (str, write) => write(errorColor(str))
-    });
+    })
+    .option('-l, --lang <lang>', 'use this language', 'en')
+  ;
 
   program
     .command('list <what>')
@@ -28,21 +30,24 @@ function main() {
       for (const row of stmt.iterate()) {
         console.log(row.name);
       }
-    });
+    })
+  ;
 
   program
     .command('add <what>')
     .alias('a')
     .description('add an element to <what>')
     .action((what, options) => {
+      const lang = program.opts().lang;
       const args = program.args.slice(2);
       if (what === 'languages') {
-        db.addLanguages(args);
+        db.addLanguages(lang, args);
       } else if (what === 'words') {
-        db.addWords(args);
+        db.addWords(lang, args);
       } else {
       }
-    });
+    })
+  ;
 
   program.parse();
   // console.log('----');
