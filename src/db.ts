@@ -81,7 +81,9 @@ export class DB {
     const stmt_sel_wnl = this.sql.prepare('SELECT id FROM words WHERE name LIKE ? AND language_id = ?');
     const stmt_sel_wn  = this.sql.prepare('SELECT id FROM words WHERE name LIKE ?');
     const stmt_sel_cwc = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? ORDER BY 2, 1');
-    const stmt_sel_cww = this.sql.prepare('SELECT W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
+    const stmt_sel_cww = this.sql.prepare('SELECT W.id, W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
+    const stmt_extra_noun_nl = this.sql.prepare('SELECT gender FROM extra_noun_nl WHERE word_id = ?');
+    const stmt_extra_noun_es = this.sql.prepare('SELECT gender FROM extra_noun_es WHERE word_id = ?');
     let count = 0;
     let concept_seen: IntToBool = {};
     for (const name of names) {
@@ -100,13 +102,38 @@ export class DB {
           concept_seen[concept.id] = true;
           const pid = concept.part_id;
           if (count > 0) console.log('');
-          console.log(`Searching for [${wn}] => ${this.iParts[pid]}`);
+          const part = this.iParts[pid];
+          console.log(`[${wn}] => ${part}`);
           for (const word of stmt_sel_cww.iterate(concept.id)) {
-            console.log(`=> ${this.iLangs[word.language_id]} ${word.name}`);
+            const lang = this.iLangs[word.language_id];
+            const xtab = `extra_${part}_${lang}`;
+            let display = word.name;
+            switch (xtab) {
+              case  'extra_noun_nl':
+                const data_nl = stmt_extra_noun_nl.get(word.id);
+                if (data_nl) {
+                  display += ` (${data_nl.gender})`;
+                }
+                break;
+              case  'extra_noun_es':
+                const data_es = stmt_extra_noun_es.get(word.id);
+                if (data_es) {
+                  display += ` (${data_es.gender})`;
+                }
+                break;
+            }
+            console.log(`${lang} ${display}`);
           }
           ++count;
         }
       }
+    }
+  }
+
+  public listWords() {
+    const stmt = this.sql.prepare(`SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id ORDER BY 1, 2`);
+    for (const row of stmt.iterate()) {
+      console.log(row.language, row.word);
     }
   }
 
@@ -116,6 +143,8 @@ export class DB {
     const words: StrToInt = {};
     const stmt_ins_word = this.sql.prepare('INSERT OR IGNORE INTO words (name, language_id) VALUES (?, ?)');
     const stmt_sel_word = this.sql.prepare('SELECT id FROM words WHERE name = ? AND language_id = ?');
+    const stmt_extra_noun_nl = this.sql.prepare('INSERT OR IGNORE INTO extra_noun_nl (word_id, gender) VALUES (?, ?)');
+    const stmt_extra_noun_es = this.sql.prepare('INSERT OR IGNORE INTO extra_noun_es (word_id, gender) VALUES (?, ?)');
     for (const name of names) {
       let wlang = lang;
       let wl = l;
@@ -126,11 +155,27 @@ export class DB {
         wl = this.getLanguage(wlang);
         wn = separated[1];
       }
+      let extra = '';
+      if (wn.indexOf('+') >= 0) {
+        const separated = wn.split('+');
+        wn = separated[0];
+        extra = separated[1];
+      }
       const word = `${wlang}:${wn}`;
       console.log(`Add [${p}:${part}] => [${wl}:${wlang}] [${wn}]`);
       stmt_ins_word.run(wn, wl);
       const data = stmt_sel_word.get(wn, wl);
       words[word] = data.id;
+
+      const xtab = `extra_${part}_${wlang}`;
+      switch (xtab) {
+        case  'extra_noun_nl':
+          stmt_extra_noun_nl.run(data.id, extra);
+          break;
+        case  'extra_noun_es':
+          stmt_extra_noun_es.run(data.id, extra);
+          break;
+      }
     }
     console.log(words);
     const stmt_sel_conc = this.sql.prepare('SELECT C.id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? AND C.part_id = ?');
@@ -208,23 +253,32 @@ export class DB {
     const tables = [
       {
         name: 'languages',
-        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, UNIQUE(name))',
+        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, UNIQUE(name))',
       },
       {
         name: 'parts',
-        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, UNIQUE(name))',
+        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, UNIQUE(name))',
       },
       {
         name: 'words',
-        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, language_id INTEGER, UNIQUE(name, language_id), FOREIGN KEY (language_id) REFERENCES languages(id) ON UPDATE CASCADE)',
+        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, language_id INTEGER NOT NULL, UNIQUE(name, language_id), FOREIGN KEY (language_id) REFERENCES languages(id) ON UPDATE CASCADE)',
       },
       {
         name: 'concepts',
-        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT, part_id INTEGER, FOREIGN KEY (part_id) REFERENCES parts(id) ON UPDATE CASCADE)',
+        definition: '(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, part_id INTEGER NOT NULL, FOREIGN KEY (part_id) REFERENCES parts(id) ON UPDATE CASCADE)',
       },
       {
         name: 'concept_words',
-        definition: '(concept_id INTEGER, word_id INTEGER, PRIMARY KEY (concept_id, word_id), FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE, FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)',
+        definition: '(concept_id INTEGER NOT NULL, word_id INTEGER NOT NULL, PRIMARY KEY (concept_id, word_id), FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE, FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)',
+      },
+
+      {
+        name: 'extra_noun_nl',
+        definition: "(word_id INTEGER PRIMARY KEY NOT NULL, gender TEXT CHECK(gender IN ('de', 'het')) NOT NULL DEFAULT 'de', FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)",
+      },
+      {
+        name: 'extra_noun_es',
+        definition: "(word_id INTEGER PRIMARY KEY NOT NULL, gender TEXT CHECK(gender IN ('el', 'la')) NOT NULL DEFAULT 'el', FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)",
       },
     ];
     for (const table of tables) {

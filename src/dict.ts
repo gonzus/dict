@@ -37,10 +37,7 @@ function main() {
     .alias('l')
     .description('list known words')
     .action((options) => {
-      const stmt = db.sql.prepare(`SELECT * FROM words ORDER BY name`);
-      for (const row of stmt.iterate()) {
-        console.log(row.name);
-      }
+      db.listWords();
     })
   ;
 
