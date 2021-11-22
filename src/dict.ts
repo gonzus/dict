@@ -22,30 +22,26 @@ function main() {
   ;
 
   program
-    .command('list <what>')
+    .command('list')
     .alias('l')
-    .description('list the elements of <what>')
-    .action((what, options) => {
-      const stmt = db.sql.prepare(`SELECT * FROM ${what} ORDER BY name`);
+    .description('list known words')
+    .action((options) => {
+      const stmt = db.sql.prepare(`SELECT * FROM words ORDER BY name`);
       for (const row of stmt.iterate()) {
         console.log(row.name);
       }
     })
   ;
 
+  // TODO: have a merge command?
   program
-    .command('add <what>')
+    .command('add <part> <words...>')
     .alias('a')
-    .description('add an element to <what>')
-    .action((what, options) => {
+    .description('add a list of words acting as the stated part')
+    .action((part, options) => {
       const lang = program.opts().lang;
       const args = program.args.slice(2);
-      if (what === 'languages') {
-        db.addLanguages(lang, args);
-      } else if (what === 'words') {
-        db.addWords(lang, args);
-      } else {
-      }
+      db.addWords(lang, part, args);
     })
   ;
 
