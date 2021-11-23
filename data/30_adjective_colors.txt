@@ -6,6 +6,6 @@ add -c colors adjective en:green                       nl:groen                 
 add -c colors adjective en:blue                        nl:blauw                       es:azul
 add -c colors adjective en:yellow                      nl:geel                        es:amarillo
 add -c colors adjective en:orange                      nl:oranje                      es:naranja
-add -c colors adjective en:brown                       nl:bruin                       es:castaño
-add -c colors adjective en:pink                        nl:roze                        es:rosa
-add -c colors adjective en:purple                      nl:paars                       es:morado
+add -c colors adjective en:brown                       nl:bruin                       es:marrón
+add -c colors adjective en:pink                        nl:roze                        es:rosado
+add -c colors adjective en:purple                      nl:paars                       es:púrpura
