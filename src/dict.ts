@@ -18,7 +18,6 @@ function main() {
     .configureOutput({
       outputError: (str, write) => write(errorColor(str))
     })
-    .option('-l, --lang <lang>', 'use this language', 'en')
   ;
 
   program
@@ -26,9 +25,9 @@ function main() {
     .alias('s')
     .argument('<words...>')
     .description('search for words matching input')
+    .option('-l, --lang <lang>', 'restrict to this language', '')
     .action((words, options) => {
-      const lang = program.opts().lang;
-      db.searchWords(lang, words);
+      db.searchWords(words, options);
     })
   ;
 
@@ -36,9 +35,9 @@ function main() {
     .command('list')
     .alias('l')
     .description('list known words')
+    .option('-l, --lang <lang>', 'restrict to this language', '')
     .action((options) => {
-      const lang = program.opts().lang;
-      db.listWords(lang);
+      db.listWords(options);
     })
   ;
 
@@ -48,8 +47,7 @@ function main() {
     .argument('[categories...]')
     .description('show words in categories')
     .action((categories, options) => {
-      const lang = program.opts().lang;
-      db.showWords(lang, categories);
+      db.showWords(categories, options);
     })
   ;
 
@@ -63,8 +61,7 @@ function main() {
     .description('add a list of words acting as the stated part')
     .option('-c, --categories <categories>', 'Optional categories for added words', '')
     .action((part, words, options) => {
-      const lang = program.opts().lang;
-      db.addWords(lang, part, words, options);
+      db.addWords(part, words, options);
     })
   ;
 

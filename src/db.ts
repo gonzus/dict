@@ -31,8 +31,9 @@ interface StrToInt {
   [name: string]: number;
 }
 
-interface AddOptions {
-  categories: string;
+interface Options {
+  lang?: string;
+  categories?: string;
 }
 
 interface Concept {
@@ -106,41 +107,34 @@ export class DB {
     }
   }
 
-  public searchWords(lang: string, names: Array<string>) {
-    const l = this.getLanguage(lang);
-    const stmt_sel_wnl = this.sql.prepare('SELECT id FROM words WHERE name LIKE ? AND language_id = ?');
-    const stmt_sel_wn  = this.sql.prepare('SELECT id FROM words WHERE name LIKE ?');
+  public searchWords(names: Array<string>, options: Options) {
+    const lang = options.lang || '';
+    const l = lang ? this.getLanguage(lang) : 0;
+    const stmt_sel_wnl = this.sql.prepare('SELECT id FROM words WHERE name LIKE ? AND (? = 0 OR language_id = ?)');
     const stmt_sel_cwc = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? ORDER BY 2, 1');
     let count = 0;
     let seen: IntToBool = {};
     for (const name of names) {
-      let wl = -1;
-      let wn = name;
-      if (name.indexOf(':') >= 0) {
-        const [sl, sn] = name.split(':');
-        wl = this.getLanguage(sl);
-        wn = sn;
-      }
-      const pat = `%${wn}%`;
-      const words = wl < 0 ? stmt_sel_wn.all(pat) : stmt_sel_wnl.all(pat, wl);
-      for (const word of words) {
+      const pat = `%${name}%`;
+      for (const word of stmt_sel_wnl.iterate(pat, l, l)) {
         for (const concept of stmt_sel_cwc.iterate(word.id)) {
-          this.showConcept(concept, wn, count++, seen);
+          this.showConcept(concept, name, count++, seen);
         }
       }
     }
   }
 
-  public listWords(lang: string) {
-    const stmt = this.sql.prepare('SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id ORDER BY 1, 2');
-    for (const row of stmt.iterate()) {
+  public listWords(options: Options) {
+    const lang = options.lang || '';
+    const l = lang ? this.getLanguage(lang) : 0;
+    const stmt = this.sql.prepare('SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id WHERE ? = 0 OR L.id = ? ORDER BY 1, 2');
+    for (const row of stmt.iterate(l, l)) {
       console.log(row.language, row.word);
     }
   }
 
-  public showWords(lang: string, names: Array<string>) {
-    if (names.length <= 0) {
-      console.log('Known categories:');
+  public showWords(categories: Array<string>, options: Options) {
+    if (categories.length <= 0) {
       const stmt = this.sql.prepare('SELECT name FROM categories ORDER BY 1');
       for (const row of stmt.iterate()) {
         console.log(row.name);
@@ -152,8 +146,8 @@ export class DB {
     const stmt_sel_con = this.sql.prepare('SELECT C.id, C.part_id FROM concepts C JOIN category_concepts CC ON C.id = CC.concept_id WHERE CC.category_id = ? ORDER BY 2, 1');
     let count = 0;
     let seen: IntToBool = {};
-    for (const name of names) {
-      const pat = `%${name}%`;
+    for (const category of categories) {
+      const pat = `%${category}%`;
       for (const cat of stmt_sel_cat.iterate(pat)) {
         for (const concept of stmt_sel_con.iterate(cat.id)) {
           this.showConcept(concept, cat.name, count++, seen);
@@ -162,8 +156,7 @@ export class DB {
     }
   }
 
-  public addWords(lang: string, part: string, names: Array<string>, options: AddOptions) {
-    console.log('OPTIONS', options);
+  public addWords(part: string, names: Array<string>, options: Options) {
     const stmt_ins_cat = this.sql.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
     const stmt_sel_cat = this.sql.prepare('SELECT id, name FROM categories WHERE name = ?');
     const stmt_ins_cc = this.sql.prepare('INSERT OR IGNORE INTO category_concepts (category_id, concept_id) VALUES (?, ?)');
@@ -176,6 +169,7 @@ export class DB {
         cats[data.name] = data.id;
       }
     }
+    const lang = DEFAULT_LANGUAGE;
     const l = this.getLanguage(lang);
     const p = this.getPart(part);
     const words: StrToInt = {};
@@ -200,7 +194,6 @@ export class DB {
         extra = separated[1];
       }
       const word = `${wlang}:${wn}`;
-      console.log(`Add [${p}:${part}] => [${wl}:${wlang}] [${wn}]`);
       stmt_ins_word.run(wn, wl);
       const data = stmt_sel_word.get(wn, wl);
       words[word] = data.id;
@@ -215,14 +208,12 @@ export class DB {
           break;
       }
     }
-    console.log(words);
     const stmt_sel_conc = this.sql.prepare('SELECT C.id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? AND C.part_id = ?');
     let cid = -1;
     for (const word of Object.keys(words)) {
       const wid = words[word];
       const concepts = stmt_sel_conc.all(wid, p);
       if (!concepts || concepts.length < 1) continue;
-      console.log(`concepts for [${word}]`, concepts);
       if (concepts.length == 1) {
         if (cid < 0) {
           cid = concepts[0].id;
@@ -245,7 +236,6 @@ export class DB {
       console.log('COULD NOT ADD CONCEPT');
       return;
     }
-    console.log(`will use concept id ${cid}`);
     for (const cat of Object.keys(cats)) {
       stmt_ins_cc.run(cats[cat], cid);
     }
@@ -286,7 +276,7 @@ export class DB {
   }
 
   private setup() {
-    // allow foreign keys in the DB.
+    // enforce foreign keys in the DB.
     this.sql.exec('PRAGMA foreign_keys = ON');
   }
 
