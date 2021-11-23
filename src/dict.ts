@@ -69,17 +69,19 @@ function main() {
   program
     .command('load')
     .alias('d')
-    .argument('<file>')
+    .argument('<files...>')
     .description('load data from a file')
-    .action((file, options) => {
-      const data = fs.readFileSync(file, 'utf-8');
-      const lines = data.split(/\r?\n/);
-      for (const line of lines) {
-        if (line.match(/^\s*$/)) continue; // ignore empty lines
-        if (line.match(/^\s*#/)) continue; // ignore comments
-        const args = line.split(/\s+/);
-        // console.log(args);
-        program.parse(args, { from: 'user' });
+    .action((files, options) => {
+      for (const file of files) {
+        const data = fs.readFileSync(file, 'utf-8');
+        const lines = data.split(/\r?\n/);
+        for (const line of lines) {
+          if (line.match(/^\s*$/)) continue; // ignore empty lines
+          if (line.match(/^\s*#/)) continue; // ignore comments
+          const args = line.split(/\s+/);
+          // console.log(args);
+          program.parse(args, { from: 'user' });
+        }
       }
     })
   ;

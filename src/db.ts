@@ -76,7 +76,7 @@ export class DB {
     seen[concept.id] = true;
 
     const stmt_sel_cc = this.sql.prepare('SELECT C.name FROM categories C JOIN category_concepts CC ON C.id = CC.category_id WHERE CC.concept_id = ? ORDER BY 1');
-    const stmt_sel_cww = this.sql.prepare('SELECT W.id, W.name, W.language_id FROM words W JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 2, 1');
+    const stmt_sel_cww = this.sql.prepare('SELECT L.name AS language_name, W.id, W.name, W.language_id FROM words W JOIN languages L ON W.language_id = L.id JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 1, 3, 2');
     const stmt_extra_noun_nl = this.sql.prepare('SELECT gender FROM extra_noun_nl WHERE word_id = ?');
     const stmt_extra_noun_es = this.sql.prepare('SELECT gender FROM extra_noun_es WHERE word_id = ?');
     const pid = concept.part_id;
