@@ -84,7 +84,7 @@ export class DB {
 
     const cats = stmt_sel_cc.all(concept.id).map(c => c.name);
     const part = this.iParts[pid];
-    console.log(`[${name}] => ${part} [${concept.id}] (${cats.join(', ')})`);
+    console.log(`[${name}] => ${part} (${cats.join(', ')})`);
     for (const word of stmt_sel_cww.iterate(concept.id)) {
       const lang = this.iLangs[word.language_id];
       const xtab = `extra_${part}_${lang}`;
