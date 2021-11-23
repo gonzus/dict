@@ -73,6 +73,7 @@ function main() {
     .description('load data from a file')
     .action((files, options) => {
       for (const file of files) {
+        console.log(`Loading file [${file}]`);
         const data = fs.readFileSync(file, 'utf-8');
         const lines = data.split(/\r?\n/);
         for (const line of lines) {

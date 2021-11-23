@@ -5,16 +5,16 @@ use Path::Tiny;
 use Getopt::Long  qw/ GetOptions /;
 
 my %OPTS = (
-    cat   => '',
     part  => 'noun',
+    cat   => '',
     guess => 1,
     help  => 0,
 );
 Getopt::Long::GetOptions(
-    'guess'  => \$OPTS{guess},
-    'cat=s'  => \$OPTS{cat},
     'part=s' => \$OPTS{part},
-    'help'  => \$OPTS{help},
+    'cat=s'  => \$OPTS{cat},
+    'guess'  => \$OPTS{guess},
+    'help'   => \$OPTS{help},
 );
 
 exit main();
@@ -31,24 +31,36 @@ sub process_file {
         # printf("%3d | [%s]\n", $count, $line);
         my @cols = split(' ', $line);
 
+        my $part = '';
         my $cat = '';
-        if ($OPTS{cat}) {
-            $cat = $OPTS{cat};
-        } elsif ($OPTS{guess}) {
-            my $p = path($name);
-            my $b = $p->basename;
-            $cat = $b =~ s:^[-_0-9]+|\.[-_a-zA-Z0-9]+$::rg;
+        if ($OPTS{guess}) {
+            my $b = path($name)->basename;
+            my ($p, $c) = $b =~ m/[0-9]+_([a-zA-Z]+)_([a-zA-Z]+)\.[0-9a-zA-Z]+$/;
+            $part = $p if $p;
+            $cat  = $c if $c;
+        } else {
+            $part = $OPTS{part} if $OPTS{part};
+            $cat  = $OPTS{cat}  if $OPTS{cat};
         }
         $cat = "-c $cat" if $cat;
 
-        my $part = $OPTS{part};
+        if ($part eq 'noun') {
+            my $en = sprintf("%s:%s"   , 'en', $cols[2]);
+            my $nl = sprintf("%s:%s+%s", 'nl', $cols[1], $cols[0]);
+            my $es = sprintf("%s:%s+%s", 'es', $cols[4], $cols[3]);
+            printf("add %s %s %-30.30s %-30.30s %s\n",
+                $cat, $part, $en, $nl, $es);
+            next;
+        }
 
-        my $en = sprintf("%s:%s"   , 'en', $cols[2]);
-        my $nl = sprintf("%s:%s+%s", 'nl', $cols[1], $cols[0]);
-        my $es = sprintf("%s:%s+%s", 'es', $cols[4], $cols[3]);
-
-        printf("add %s %s %-30.30s %-30.30s %s\n",
-               $cat, $part, $en, $nl, $es);
+        if ($part eq 'adjective') {
+            my $en = sprintf("%s:%s", 'en', $cols[1]);
+            my $nl = sprintf("%s:%s", 'nl', $cols[0]);
+            my $es = sprintf("%s:%s", 'es', $cols[2]);
+            printf("add %s %s %-30.30s %-30.30s %s\n",
+                $cat, $part, $en, $nl, $es);
+            next;
+        }
     }
     close $fp;
 }
