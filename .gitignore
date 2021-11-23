@@ -1,4 +1,5 @@
 node_modules/
 build/
+data/raw/
 *.db
 *.swp
