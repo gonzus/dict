@@ -317,7 +317,7 @@ export class DB {
       },
       {
         name: 'extra_noun_es',
-        definition: "(word_id INTEGER PRIMARY KEY NOT NULL, gender TEXT CHECK(gender IN ('el', 'la')) NOT NULL DEFAULT 'el', FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)",
+        definition: "(word_id INTEGER PRIMARY KEY NOT NULL, gender TEXT CHECK(gender IN ('el', 'la', 'los', 'las')) NOT NULL DEFAULT 'el', FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)",
       },
     ];
     for (const table of tables) {

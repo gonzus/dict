@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'fs';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { DB } from './db';
@@ -58,10 +59,28 @@ function main() {
     .alias('a')
     .argument('<part>')
     .argument('<words...>')
-    .description('add a list of words acting as the stated part')
+    .description('add a list of words as a single concept')
     .option('-c, --categories <categories>', 'Optional categories for added words', '')
     .action((part, words, options) => {
       db.addWords(part, words, options);
+    })
+  ;
+
+  program
+    .command('load')
+    .alias('d')
+    .argument('<file>')
+    .description('load data from a file')
+    .action((file, options) => {
+      const data = fs.readFileSync(file, 'utf-8');
+      const lines = data.split(/\r?\n/);
+      for (const line of lines) {
+        if (line.match(/^\s*$/)) continue; // ignore empty lines
+        if (line.match(/^\s*#/)) continue; // ignore comments
+        const args = line.split(/\s+/);
+        // console.log(args);
+        program.parse(args, { from: 'user' });
+      }
     })
   ;
 
