@@ -1,0 +1,42 @@
+add -c looks noun en:beard                       nl:baard+de                    es:barba+la
+add -c looks noun en:hair                        nl:haar+het                    es:pelo+el
+add -c looks noun en:haircut                     nl:kapsel+het                  es:corte_de_pelo+el
+note noun nl:kapsel also used as hairstyle
+add -c looks noun en:mustache                    nl:snor+de                     es:bigote+el
+add -c looks noun en:appearance                  nl:uiterlijk+het               es:apariencia+la
+add -c looks noun en:lace                        nl:veter+de                    es:cordón+el
+add -c looks noun en:shoelace                    nl:veter+de                    es:cordón_de_zapatos+el
+add -c looks noun en:zipper                      nl:rits+de                     es:cremallera+la
+add -c looks noun en:button                      nl:knoop+de                    es:botón+el
+add -c looks noun en:coat                        nl:jas+de                      es:abrigo+el
+add -c looks noun en:jacket                      nl:jas+de                      es:chaqueta+la
+add -c looks noun en:bag                         nl:tas+de                      es:bolsa+la
+add -c looks noun en:dress                       nl:jurk+de                     es:vestido+el
+add -c looks noun en:sunglasses                  nl:zonnebril+de                es:anteojos_de_sol+los
+note noun nl:zonnebril singular
+note noun en:sunglasses plural
+note noun es:anteojos_de_sol plural
+add -c looks noun en:shirt                       nl:hemd+het                    es:camisa+la
+add -c looks noun en:eyebrow                     nl:wenkbrauw+de                es:ceja+la
+add -c looks noun en:earphone                    nl:oortje+het
+add -c looks noun en:earpiece                    nl:oortje+het                  es:audífono+el
+add -c looks noun en:headphone                   nl:koptelefoon+de              es:auricular+el
+add -c looks noun en:bracelet                    nl:armband+de                  es:brazalete+el
+add -c looks noun en:eyelash                     nl:wimper+de                   es:pestaña+la
+add -c looks noun en:lens                        nl:lens+de                     es:lente+el
+add -c looks noun en:knit_cap                    nl:muts+de                     es:gorro+el
+add -c looks noun en:beanie                      nl:muts+de
+add -c looks noun en:mitten                      nl:want+de                     es:mitón+el
+add -c looks noun en:glove                       nl:handschoen+de               es:guante+el
+note noun nl:handschoen always plural
+add -c looks noun en:headscarf                   nl:hoofddoek+de                es:pañuelo_de_cabeza+el
+add -c looks noun en:cap                         nl:pet+de                      es:gorra+la
+add -c looks noun en:scarf                       nl:sjaal+de                    es:bufanda+la
+add -c looks noun en:ring                        nl:ring+de                     es:anillo+el
+add -c looks noun en:watch                       nl:horlogue+het                es:reloj+el
+add -c looks noun en:mole                        nl:moedervlek+de               es:lunar+el
+add -c looks noun en:birthmark                   nl:moedervlek+de               es:mancha_de_nacimiento+la
+add -c looks noun en:jewel                       nl:sieraad+het                 es:joya+la
+note noun nl:sieraad singular: a treasure; plural: jewelry
+add -c looks noun en:scar                        nl:litteken+het                es:cicatriz+la
+add -c looks noun en:tattoo                      nl:tatoeage+de                 es:tatuaje+el
