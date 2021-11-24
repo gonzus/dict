@@ -1,0 +1,44 @@
+add -c health noun en:medicine                    nl:medicijn+het                es:medicina+la
+add -c health noun en:accident                    nl:ongeluk+het                 es:accidente+el
+add -c health noun en:healthcare                  nl:zorg+de                     es:cuidado_de_la_salud+el
+add -c health noun en:patient                     nl:patiënt+de                 es:paciente+el
+add -c health noun en:hospital                    nl:ziekenhuis+het              es:hospital+el
+add -c health noun en:treatment                   nl:behandeling+de              es:tratamiento+el
+add -c health noun en:wound                       nl:wond+de                     es:herida+la
+add -c health noun en:disease                     nl:ziekte+de                   es:enfermedad+la
+add -c health noun en:health                      nl:gezondheid+de               es:salud+la
+add -c health noun en:skin                        nl:huid+de                     es:piel+la
+note noun nl:huid mijn huid doet pijn
+note noun en:skin my skin aches
+note noun es:piel me duele la piel
+add -c health noun en:pain                        nl:pijn+de                     es:dolor+el
+add -c health noun en:blood                       nl:bloed+het                   es:sangre+la
+add -c health noun en:surgery                     nl:operatie+de                 es:cirugía+la
+add -c health noun en:virus                       nl:virus+het                   es:virus+el
+add -c health noun en:fever                       nl:koorts+de                   es:fiebre+la
+add -c health noun en:flu                         nl:griep+de                    es:gripe+la
+add -c health noun en:ointment                    nl:zalf+de                     es:ungüento+el
+add -c health noun en:medication                  nl:geneesmiddel+het            es:medicamento+el
+add -c health noun en:condition                   nl:toestand+de                 es:condición+la
+add -c health noun en:diet                        nl:dieet+het                   es:dieta+la
+note noun nl:dieet op dieet
+note noun en:diet on a diet
+note noun es:dieta a dieta
+add -c health noun en:pill                        nl:pil+de                      es:píldora+la
+add -c health noun en:wheelchair                  nl:rolstoel+de                 es:silla_de_ruedas+la
+add -c health noun en:band-aid                    nl:pleister+de                 es:apósito_adhesivo+el
+add -c health noun en:doctor                      nl:arts+de                     es:doctor+el
+add -c health noun en:appointment                 nl:afspraak+de                 es:cita+la
+add -c health noun en:nurse                       nl:verpleegkundige+de          es:enfermera+la
+add -c health noun en:bandage                     nl:verband+het                 es:venda+la
+add -c health noun en:stomach_ache                nl:buikpijn+de                 es:dolor_de_estómago+el
+add -c health noun en:headache                    nl:hoofdpijn+de                es:dolor_de_cabeza+el
+add -c health noun en:pharmacist                  nl:apotheker+de                es:farmacéutico+el
+add -c health noun en:pharmacy                    nl:apotheek+de                 es:farmacia+la
+add -c health noun en:general_practitioner        nl:huisarts+de                 es:médico_general+el
+add -c health noun en:first_aid                   nl:EHBO+de                     es:primeros_auxilios+los
+note noun nl:EHBO Eerste Hulp Bij Ongevallen
+note noun en:first_aid First Aid For Accidents
+note noun es:primeros_auxilios Primeros Auxilios Para Accidentes
+add -c health noun en:dentist                     nl:tandarts+de                 es:dentista+el
+add -c health noun en:drug_store                  nl:drogisterij+de              es:farmacia+la
