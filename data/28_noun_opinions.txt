@@ -1,0 +1,17 @@
+add -c opinions noun en:opinion                     nl:mening+de                   es:opinión+la
+add -c opinions noun en:point_of_view               nl:standpunt+het               es:punto_de_vista+el
+add -c opinions noun en:attitude                    nl:houding+de                  es:actitud+la
+add -c opinions noun en:matter                      nl:kwestie+de                  es:asunto+el
+add -c opinions noun en:issue                       nl:kwestie+de                  es:cuestión+la
+add -c opinions noun en:argument                    nl:argument+het                es:argumento+el
+add -c opinions noun en:respect                     nl:respect+het                 es:respeto+el
+add -c opinions noun en:story                       nl:verhaal+het                 es:historia+la
+add -c opinions noun en:comment                     nl:opmerking+de                es:comentario+el
+add -c opinions noun en:remark                      nl:opmerking+de
+add -c opinions noun en:judgment                    nl:oordeel+het                 es:juicio+el
+add -c opinions noun en:criticism                   nl:kritiek+de                  es:crítica+la
+add -c opinions noun en:sentence                    nl:zin+de                      es:frase+la
+add -c opinions noun en:advantage                   nl:voordeel+het                es:ventaja+la
+add -c opinions noun en:permission                  nl:toestemming+de              es:permiso+el
+add -c opinions noun en:review                      nl:recensie+de                 es:revisión+la
+add -c opinions noun en:fact                        nl:feit+het                    es:hecho+el
