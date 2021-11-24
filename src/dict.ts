@@ -67,6 +67,18 @@ function main() {
   ;
 
   program
+    .command('note')
+    .alias('n')
+    .argument('<part>')
+    .argument('<word>')
+    .argument('<note...>')
+    .description('add a note to a word')
+    .action((part, words, note, options) => {
+      db.addNote(part, words, note, options);
+    })
+  ;
+
+  program
     .command('load')
     .alias('d')
     .argument('<files...>')

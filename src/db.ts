@@ -76,7 +76,7 @@ export class DB {
     seen[concept.id] = true;
 
     const stmt_sel_cc = this.sql.prepare('SELECT C.name FROM categories C JOIN category_concepts CC ON C.id = CC.category_id WHERE CC.concept_id = ? ORDER BY 1');
-    const stmt_sel_cww = this.sql.prepare('SELECT L.name AS language_name, W.id, W.name, W.language_id FROM words W JOIN languages L ON W.language_id = L.id JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 1, 3, 2');
+    const stmt_sel_cww = this.sql.prepare('SELECT L.name AS language_name, W.id, W.name, W.language_id, CW.note FROM words W JOIN languages L ON W.language_id = L.id JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 1, 3, 2');
     const stmt_extra_noun_nl = this.sql.prepare('SELECT gender FROM extra_noun_nl WHERE word_id = ?');
     const stmt_extra_noun_es = this.sql.prepare('SELECT gender FROM extra_noun_es WHERE word_id = ?');
     const pid = concept.part_id;
@@ -102,6 +102,9 @@ export class DB {
             display += ` (${data_es.gender})`;
           }
           break;
+      }
+      if (word.note) {
+        display += ` | ${word.note}`;
       }
       console.log(`${lang} ${display}`);
     }
@@ -224,7 +227,7 @@ export class DB {
       }
     }
     if (cid == -2) {
-      console.log('AMBIGUOUS');
+      console.log('AMBIGUOUS CONCEPT');
       return;
     }
     if (cid < 0) {
@@ -245,6 +248,31 @@ export class DB {
       const wid = words[word];
       stmt_ins_cw.run(cid, wid);
     }
+  }
+
+  public addNote(part: string, word: string, note: Array<string>, options: Options) {
+    const lang = DEFAULT_LANGUAGE;
+    let l = this.getLanguage(lang);
+    const p = this.getPart(part);
+    if (word.indexOf(':') >= 0) {
+      const separated = word.split(':');
+      l = this.getLanguage(separated[0]);
+      word = separated[1];
+    }
+    const stmt_sel = this.sql.prepare('SELECT CW.concept_id, CW.word_id, note from concept_words CW JOIN concepts C ON CW.concept_id = C.id JOIN words W ON CW.word_id = W.id WHERE C.part_id = ? AND W.language_id = ? AND W.name = ?');
+    const rows = stmt_sel.all(p, l, word);
+    if (!rows || rows.length <= 0) {
+      console.log('NOT FOUND');
+      return;
+    }
+    if (rows.length > 1) {
+      console.log('AMBIGUOUS WORD');
+      return;
+    }
+    const row = rows[0];
+    const n = (row.note ? (row.note + '; ') : '') + note.join(' ');
+    const stmt_upd = this.sql.prepare('UPDATE concept_words SET note = ? WHERE concept_id = ? AND word_id = ?');
+    stmt_upd.run(n, row.concept_id, row.word_id);
   }
 
   private getLanguage(name = '') {
@@ -300,7 +328,7 @@ export class DB {
       },
       {
         name: 'concept_words',
-        definition: '(concept_id INTEGER NOT NULL, word_id INTEGER NOT NULL, PRIMARY KEY (concept_id, word_id), FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE, FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)',
+        definition: '(concept_id INTEGER NOT NULL, word_id INTEGER NOT NULL, note TEXT NULL, PRIMARY KEY (concept_id, word_id), FOREIGN KEY (concept_id) REFERENCES concepts(id) ON UPDATE CASCADE, FOREIGN KEY (word_id) REFERENCES words(id) ON UPDATE CASCADE)',
       },
       {
         name: 'categories',

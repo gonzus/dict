@@ -1,0 +1,65 @@
+add -c university noun en:professor                   nl:professor+de                es:profesor+el
+add -c university noun en:university                  nl:universiteit+de             es:universidad+la
+add -c university noun en:lecture                     nl:lezing+de                   es:conferencia+la
+add -c university noun en:application                 nl:aanmelding+de               es:solicitud+la
+add -c university noun en:note                        nl:aantekening+de              es:nota+la
+add -c university noun en:course                      nl:cursus+de                   es:curso+el
+note noun nl:cursus voorbeeld: Ik volg een cursus geschiedenis
+note noun en:course example: I am taking a history course
+add -c university noun en:student_(male_)             nl:student+de                  es:estudiante_(masculino)+el
+add -c university noun en:student_(female)            nl:student+de                  es:estudiante_(femenino)+la
+add -c university noun en:training                    nl:training+de                 es:entrenamiento+el
+add -c university noun en:thesis                      nl:scriptie+de                 es:tesis+la
+note noun en:thesis plural: theses
+add -c university noun en:program                     nl:programma+het               es:programa+el
+note noun nl:programma meervoud: programma's
+add -c university noun en:lecture                     nl:college+het                 es:conferencia+la
+add -c university noun en:document                    nl:document+het                es:documento+el
+add -c university noun en:page                        nl:pagina+de                   es:página+la
+note noun nl:pagina meervoud: pagina's
+add -c university noun en:report                      nl:verslag+het                 es:reporte+el
+add -c university noun en:institute                   nl:instituut+het               es:instituto+el
+add -c university noun en:education                   nl:opleiding+de                es:educación+la
+add -c university noun en:law                         nl:rechten+de                  es:ley+la
+add -c university noun en:philosophy                  nl:filosofie+de                es:filosofía+la
+add -c university noun en:linguistics                 nl:taalkunde+de                es:lingüística+la
+add -c university noun en:sociology                   nl:sociologie+de               es:sociología+la
+add -c university noun en:chemistry                   nl:scheikunde+de               es:química+la
+add -c university noun en:physics                     nl:natuurkunde+de              es:física+la
+add -c university noun en:medicine                    nl:geneeskunde+de              es:medicina+la
+add -c university noun en:engineer                    nl:ingenieur+de                es:ingeniero+el
+add -c university noun en:biology                     nl:biologie+de                 es:biología+la
+add -c university noun en:history                     nl:geschiedenis+de             es:historia+la
+add -c university noun en:maths                       nl:wiskunde+de                 es:matemática+la
+add -c university noun en:skill                       nl:kunde+de                    es:habilidad+la
+note noun en:skill as in "art"
+add -c university noun en:science                     nl:wetenschap+de               es:ciencia+la
+add -c university noun en:scientist                   nl:wetenschapper+de            es:científico+el
+add -c university noun en:experiment                  nl:experiment+het              es:experimento+el
+add -c university noun en:laboratory                  nl:laboratorium+het            es:laboratorio+el
+note noun nl:laboratorium meervoud: laboratoria
+add -c university noun en:theory                      nl:theorie+de                  es:teoría+la
+add -c university noun en:research                    nl:onderzoek+het               es:investigación+la
+add -c university noun en:confirmation                nl:bevestiging+de              es:confirmación+la
+add -c university noun en:formula                     nl:formule+de                  es:fórmula+la
+add -c university noun en:definition                  nl:definitie+de                es:definición+la
+add -c university noun en:method                      nl:methode+de                  es:método+el
+add -c university noun en:solution                    nl:oplossing+de                es:solución+la
+add -c university noun en:magazine                    nl:tijdschrift+het             es:revista+la
+note noun nl:tijdschrift wetenschappelijke tijdschrift
+note noun en:magazine scientific journal
+note noun es:revista publicación científica
+add -c university noun en:journal                     nl:tijdschrift+het             es:publicación+la
+add -c university noun en:prediction                  nl:voorspelling+de             es:predicción+la
+add -c university noun en:article                     nl:artikel+het                 es:artículo+el
+add -c university noun en:evidence                    nl:bewijs+het                  es:evidencia+la
+add -c university noun en:proof                       nl:bewijs+het                  es:prueba+la
+add -c university noun en:universe                    nl:universum+het               es:universo+el
+add -c university noun en:concept                     nl:concept+het                 es:concepto+el
+add -c university noun en:discovery                   nl:ontdekking+de               es:descubrimiento+el
+add -c university noun en:planet                      nl:planeet+de                  es:planeta+el
+add -c university noun en:conclusion                  nl:conclusie+de                es:conclusión+la
+add -c university noun en:electricity                 nl:elektriciteit+de            es:electricidad+la
+add -c university noun en:climate                     nl:klimaat+het                 es:clima+el
+add -c university noun en:idea                        nl:idee+het                    es:idea+la
+add -c university noun en:answer                      nl:antwoord+het                es:respuesta+la
