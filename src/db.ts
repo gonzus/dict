@@ -18,6 +18,7 @@
 //   6|noun|student|nl
 
 import Database from 'better-sqlite3';
+import { Options, Default } from './common';
 
 interface IntToBool {
   [name: number]: boolean;
@@ -31,18 +32,10 @@ interface StrToInt {
   [name: string]: number;
 }
 
-interface Options {
-  lang?: string;
-  categories?: string;
-}
-
 interface Concept {
   id: number;
   part_id: number;
 }
-
-const DEFAULT_LANGUAGE = 'en';
-const DEFAULT_PART = 'noun';
 
 export class DB {
   public sql;
@@ -172,7 +165,7 @@ export class DB {
         cats[data.name] = data.id;
       }
     }
-    const lang = DEFAULT_LANGUAGE;
+    const lang = Default.Language;
     const l = this.getLanguage(lang);
     const p = this.getPart(part);
     const words: StrToInt = {};
@@ -251,7 +244,7 @@ export class DB {
   }
 
   public addNote(part: string, word: string, note: Array<string>, options: Options) {
-    const lang = DEFAULT_LANGUAGE;
+    const lang = Default.Language;
     let l = this.getLanguage(lang);
     const p = this.getPart(part);
     if (word.indexOf(':') >= 0) {
@@ -286,7 +279,7 @@ export class DB {
       }
       this.hLangs = true;
     }
-    return this.nLangs[name || DEFAULT_LANGUAGE];
+    return this.nLangs[name || Default.Language];
   }
 
   private getPart(name = '') {
@@ -300,7 +293,7 @@ export class DB {
       }
       this.hParts = true;
     }
-    return this.nParts[name || DEFAULT_PART];
+    return this.nParts[name || Default.Part];
   }
 
   private setup() {

@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { DB } from './db';
 
-const VERSION = '0.0.1';
+import { Options, Program } from './common';
 
 if (require.main === module) {
   main();
@@ -15,7 +15,7 @@ function main() {
   const db = new DB('dict.db');
   const program = new Command();
   program
-    .version(VERSION)
+    .version(Program.Version)
     .configureOutput({
       outputError: (str, write) => write(errorColor(str))
     })
@@ -84,27 +84,27 @@ function main() {
     .argument('<files...>')
     .description('load data from a file')
     .action((files, options) => {
-      for (const file of files) {
-        console.log(`Loading file [${file}]`);
-        const data = fs.readFileSync(file, 'utf-8');
-        const lines = data.split(/\r?\n/);
-        for (const line of lines) {
-          if (line.match(/^\s*$/)) continue; // ignore empty lines
-          if (line.match(/^\s*#/)) continue; // ignore comments
-          const args = line.split(/\s+/);
-          // console.log(args);
-          program.parse(args, { from: 'user' });
-        }
-      }
+      loadFiles(program, files, options);
     })
   ;
 
   program.parse();
-  // console.log('----');
-  // console.log(program.args);
-  // console.log(program.processedArgs);
 }
 
 function errorColor(str: string) {
   return chalk.red(str);
+}
+
+function loadFiles(program: Command, files: Array<string>, options: Options) {
+  for (const file of files) {
+    console.log(`Loading file [${file}]`);
+    const data = fs.readFileSync(file, 'utf-8');
+    const lines = data.split(/\r?\n/);
+    for (const line of lines) {
+      if (line.match(/^\s*$/)) continue; // ignore empty lines
+      if (line.match(/^\s*#/)) continue; // ignore comments
+      const args = line.split(/\s+/);
+      program.parse(args, { from: 'user' });
+    }
+  }
 }
