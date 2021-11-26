@@ -6,24 +6,24 @@ import { Options, Program } from './common';
 
 export class App {
   private db: DB;
-  private program: Command;
+  private command: Command;
 
   constructor() {
     this.db = new DB('dict.db');
-    this.program = new Command();
+    this.command = new Command();
 
     this.setup();
   }
 
   private setup() {
-    this.program
+    this.command
       .version(Program.Version)
       .configureOutput({
         outputError: (str, write) => write(errorColor(str))
       })
     ;
 
-    this.program
+    this.command
       .command('search')
       .alias('s')
       .argument('<words...>')
@@ -34,7 +34,7 @@ export class App {
       })
     ;
 
-    this.program
+    this.command
       .command('list')
       .alias('l')
       .description('list known words')
@@ -44,7 +44,7 @@ export class App {
       })
     ;
 
-    this.program
+    this.command
       .command('show')
       .alias('w')
       .argument('[categories...]')
@@ -56,7 +56,7 @@ export class App {
 
     // TODO: add a merge command to merge sets of concepts
 
-    this.program
+    this.command
       .command('add')
       .alias('a')
       .argument('<part>')
@@ -68,7 +68,7 @@ export class App {
       })
     ;
 
-    this.program
+    this.command
       .command('note')
       .alias('n')
       .argument('<part>')
@@ -80,7 +80,7 @@ export class App {
       })
     ;
 
-    this.program
+    this.command
       .command('load')
       .alias('d')
       .argument('<files...>')
@@ -92,7 +92,7 @@ export class App {
   }
 
   public run() : number {
-    this.program.parse();
+    this.command.parse();
     return 0;
   }
 
@@ -105,7 +105,7 @@ export class App {
         if (line.match(/^\s*$/)) continue; // ignore empty lines
         if (line.match(/^\s*#/)) continue; // ignore comments
         const args = line.split(/\s+/);
-        this.program.parse(args, { from: 'user' });
+        this.command.parse(args, { from: 'user' });
       }
     }
   }
