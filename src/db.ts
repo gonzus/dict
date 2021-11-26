@@ -17,20 +17,9 @@
 //   6|noun|student|en
 //   6|noun|student|nl
 
-import Database from 'better-sqlite3';
-import { Options, Default } from './common';
-
-interface IntToBool {
-  [name: number]: boolean;
-}
-
-interface IntToStr {
-  [name: number]: string;
-}
-
-interface StrToInt {
-  [name: string]: number;
-}
+import * as SQLite from 'better-sqlite3';
+import { Options, Default, StrToInt, IntToBool } from './common';
+import { Mapping } from './mapping';
 
 interface Concept {
   id: number;
@@ -39,40 +28,45 @@ interface Concept {
 
 interface Statement {
   sql: string;
-  prepared?: Database.Statement;
+  prepared?: SQLite.Statement;
 }
 interface StatementPool {
   [name: string]: Statement;
 }
 
-
 export class DB {
-  public sql;
+  public sql: SQLite.Database;
   private stmts: StatementPool;
 
-  private hLangs = false;
-  private nLangs: StrToInt = {};
-  private iLangs: IntToStr = {};
+  private langs: Mapping;
+  private parts: Mapping;
 
-  private hParts = false;
-  private nParts: StrToInt = {};
-  private iParts: IntToStr = {};
-
-  /**
-   * Class constructor.
-   *
-   * @param fileName file name for the database.
-   * @param options options for the database.
-   */
   constructor(fileName = '', options = {}) {
-    this.sql = new Database(fileName, options);
+    this.sql = new SQLite.default(fileName, options);
+
+    this.setup();
+    this.create();
+
+    this.langs = new Mapping(this.sql, 'languages', [
+      'en',
+      'nl',
+      'es',
+      'it',
+    ]);
+
+    this.parts = new Mapping(this.sql, 'parts', [
+      'verb',
+      'article',
+      'noun',
+      'adjective',
+      'adverb',
+      'pronoun',
+      'preposition',
+      'conjunction',
+      'interjection',
+    ]);
+
     this.stmts = {
-      'select_langs': {
-        sql: 'SELECT * FROM languages',
-      },
-      'select_parts': {
-        sql: 'SELECT * FROM parts',
-      },
       'select_cat': {
         sql: 'SELECT name FROM categories ORDER BY 1',
       },
@@ -112,12 +106,6 @@ export class DB {
       'select_extra_noun_es': {
         sql: 'SELECT gender FROM extra_noun_es WHERE word_id = ?',
       },
-      'insert_lang': {
-        sql: 'INSERT OR IGNORE INTO languages (name) VALUES (?)',
-      },
-      'insert_part': {
-        sql: 'INSERT OR IGNORE INTO parts (name) VALUES (?)',
-      },
       'insert_word': {
         sql: 'INSERT OR IGNORE INTO words (name, language_id) VALUES (?, ?)',
       },
@@ -143,12 +131,6 @@ export class DB {
         sql: 'UPDATE concept_words SET note = ? WHERE concept_id = ? AND word_id = ?',
       },
     };
-
-    this.setup();
-    this.create();
-    this.populate();
-    this.getPart();
-    this.getLanguage();
   }
 
   private showConcept(concept: Concept, name: string, count: number, seen: IntToBool) {
@@ -160,12 +142,12 @@ export class DB {
 
     const stmt_sel_cc = this.getStatement('select_cat_con');
     const cats = stmt_sel_cc.all(concept.id).map(c => c.name);
-    const part = this.iParts[pid];
+    const part = this.parts.getById(pid);
     console.log(`[${name}] => ${part} (${cats.join(', ')})`);
 
     const stmt_sel_cww = this.getStatement('select_wlc');
     for (const word of stmt_sel_cww.iterate(concept.id)) {
-      const lang = this.iLangs[word.language_id];
+      const lang = this.langs.getById(word.language_id);
       let display = word.name;
       const sel_extra = `select_extra_${part}_${lang}`;
       if (this.haveStatement(sel_extra)) {
@@ -184,7 +166,7 @@ export class DB {
 
   public searchWords(names: Array<string>, options: Options) {
     const lang = options.lang || '';
-    const l = lang ? this.getLanguage(lang) : 0;
+    const l = lang ? this.langs.getByName(lang || Default.Language) : 0;
     let count = 0;
     let seen: IntToBool = {};
     for (const name of names) {
@@ -201,7 +183,7 @@ export class DB {
 
   public listWords(options: Options) {
     const lang = options.lang || '';
-    const l = lang ? this.getLanguage(lang) : 0;
+    const l = lang ? this.langs.getByName(lang || Default.Language) : 0;
     const stmt = this.getStatement('select_wl');
     for (const row of stmt.iterate(l, l)) {
       console.log(row.language, row.word);
@@ -245,8 +227,8 @@ export class DB {
       }
     }
     const lang = Default.Language;
-    const l = this.getLanguage(lang);
-    const p = this.getPart(part);
+    const l = this.langs.getByName(lang || Default.Language);
+    const p = this.parts.getByName(part || Default.Part);
     const words: StrToInt = {};
     for (const name of names) {
       let wlang = lang;
@@ -255,7 +237,7 @@ export class DB {
       if (name.indexOf(':') >= 0) {
         const separated = name.split(':');
         wlang = separated[0];
-        wl = this.getLanguage(wlang);
+        wl = this.langs.getByName(wlang || Default.Language);
         wn = separated[1];
       }
       let extra = '';
@@ -320,11 +302,11 @@ export class DB {
 
   public addNote(part: string, word: string, note: Array<string>, options: Options) {
     const lang = Default.Language;
-    let l = this.getLanguage(lang);
-    const p = this.getPart(part);
+    let l = this.langs.getByName(lang || Default.Language);
+    const p = this.parts.getByName(part || Default.Part);
     if (word.indexOf(':') >= 0) {
       const separated = word.split(':');
-      l = this.getLanguage(separated[0]);
+      l = this.langs.getByName(separated[0] || Default.Language);
       word = separated[1];
     }
     const stmt_sel = this.getStatement('select_concept_words_notes');
@@ -341,34 +323,6 @@ export class DB {
     const n = (row.note ? (row.note + '; ') : '') + note.join(' ');
     const stmt_upd = this.getStatement('update_concept_word');
     stmt_upd.run(n, row.concept_id, row.word_id);
-  }
-
-  private getLanguage(name = '') {
-    if (!this.hLangs) {
-      this.nLangs = {};
-      this.iLangs = {};
-      const stmt = this.getStatement('select_langs');
-      for (const row of stmt.iterate()) {
-        this.nLangs[row.name] = row.id;
-        this.iLangs[row.id] = row.name;
-      }
-      this.hLangs = true;
-    }
-    return this.nLangs[name || Default.Language];
-  }
-
-  private getPart(name = '') {
-    if (!this.hParts) {
-      this.nParts = {};
-      this.iParts = {};
-      const stmt = this.getStatement('select_parts');
-      for (const row of stmt.iterate()) {
-        this.nParts[row.name] = row.id;
-        this.iParts[row.id] = row.name;
-      }
-      this.hParts = true;
-    }
-    return this.nParts[name || Default.Part];
   }
 
   private setup() {
@@ -419,42 +373,6 @@ export class DB {
     for (const table of tables) {
       const sql = `CREATE TABLE IF NOT EXISTS ${table.name} ${table.definition}`;
       this.sql.exec(sql);
-    }
-  }
-
-  private populate() {
-    this.populateLanguages();
-    this.populateParts();
-  }
-
-  private populateLanguages() {
-    const rows = [
-      "en",
-      "nl",
-      "es",
-      "it",
-    ];
-    const stmt = this.getStatement('insert_lang');
-    for (const row of rows) {
-      stmt.run(row);
-    }
-  }
-
-  private populateParts() {
-    const rows = [
-      "verb",
-      "article",
-      "noun",
-      "adjective",
-      "adverb",
-      "pronoun",
-      "preposition",
-      "conjunction",
-      "interjection",
-    ];
-    const stmt = this.getStatement('insert_part');
-    for (const row of rows) {
-      stmt.run(row);
     }
   }
 
