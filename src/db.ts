@@ -20,24 +20,17 @@
 import * as SQLite from 'better-sqlite3';
 import { Options, Default, StrToInt, IntToBool } from './common';
 import { Mapping } from './mapping';
+import { Pool } from './pool';
 
 interface Concept {
   id: number;
   part_id: number;
 }
 
-interface Statement {
-  sql: string;
-  prepared?: SQLite.Statement;
-}
-interface StatementPool {
-  [name: string]: Statement;
-}
-
 export class DB {
   public sql: SQLite.Database;
-  private stmts: StatementPool;
 
+  private pool: Pool;
   private langs: Mapping;
   private parts: Mapping;
 
@@ -46,6 +39,7 @@ export class DB {
 
     this.setup();
     this.create();
+    this.pool = new Pool(this.sql);
 
     this.langs = new Mapping(this.sql, 'languages', [
       'en',
@@ -65,72 +59,6 @@ export class DB {
       'conjunction',
       'interjection',
     ]);
-
-    this.stmts = {
-      'select_cat': {
-        sql: 'SELECT name FROM categories ORDER BY 1',
-      },
-      'select_cat_equal': {
-        sql: 'SELECT id, name FROM categories WHERE name = ?',
-      },
-      'select_cat_like': {
-        sql: 'SELECT id, name FROM categories WHERE name LIKE ?',
-      },
-      'select_cat_con': {
-        sql: 'SELECT C.name FROM categories C JOIN category_concepts CC ON C.id = CC.category_id WHERE CC.concept_id = ? ORDER BY 1',
-      },
-      'select_con_cat': {
-        sql: 'SELECT C.id, C.part_id FROM concepts C JOIN category_concepts CC ON C.id = CC.concept_id WHERE CC.category_id = ? ORDER BY 2, 1',
-      },
-      'select_w': {
-        sql: 'SELECT id FROM words WHERE name = ? AND language_id = ?',
-      },
-      'select_wl': {
-        sql: 'SELECT L.name AS language, W.name AS word FROM words W JOIN languages L ON W.language_id = L.id WHERE ? = 0 OR L.id = ? ORDER BY 1, 2',
-      },
-      'select_wlc': {
-        sql: 'SELECT L.name AS language_name, W.id, W.name, W.language_id, CW.note FROM words W JOIN languages L ON W.language_id = L.id JOIN concept_words CW ON W.id = CW.word_id WHERE CW.concept_id = ? ORDER BY 1, 3, 2',
-      },
-      'select_words_like': {
-        sql: 'SELECT id FROM words WHERE name LIKE ? AND (? = 0 OR language_id = ?)',
-      },
-      'select_concept_words': {
-        sql: 'SELECT C.id, C.part_id FROM concepts C JOIN concept_words CW ON C.id = CW.concept_id WHERE CW.word_id = ? AND (? = 0 OR C.part_id = ?) ORDER BY 2, 1',
-      },
-      'select_concept_words_notes': {
-        sql: 'SELECT CW.concept_id, CW.word_id, note from concept_words CW JOIN concepts C ON CW.concept_id = C.id JOIN words W ON CW.word_id = W.id WHERE C.part_id = ? AND W.language_id = ? AND W.name = ?',
-      },
-      'select_extra_noun_nl': {
-        sql: 'SELECT gender FROM extra_noun_nl WHERE word_id = ?',
-      },
-      'select_extra_noun_es': {
-        sql: 'SELECT gender FROM extra_noun_es WHERE word_id = ?',
-      },
-      'insert_word': {
-        sql: 'INSERT OR IGNORE INTO words (name, language_id) VALUES (?, ?)',
-      },
-      'insert_concept': {
-        sql: 'INSERT OR IGNORE INTO concepts (part_id) VALUES (?)',
-      },
-      'insert_concept_word': {
-        sql: 'INSERT OR IGNORE INTO concept_words (concept_id, word_id) VALUES (?, ?)',
-      },
-      'insert_cat': {
-        sql: 'INSERT OR IGNORE INTO categories (name) VALUES (?)',
-      },
-      'insert_cc': {
-        sql: 'INSERT OR IGNORE INTO category_concepts (category_id, concept_id) VALUES (?, ?)',
-      },
-      'insert_extra_noun_nl': {
-        sql: 'INSERT OR IGNORE INTO extra_noun_nl (word_id, gender) VALUES (?, ?)',
-      },
-      'insert_extra_noun_es': {
-        sql: 'INSERT OR IGNORE INTO extra_noun_es (word_id, gender) VALUES (?, ?)',
-      },
-      'update_concept_word': {
-        sql: 'UPDATE concept_words SET note = ? WHERE concept_id = ? AND word_id = ?',
-      },
-    };
   }
 
   private showConcept(concept: Concept, name: string, count: number, seen: IntToBool) {
@@ -140,18 +68,18 @@ export class DB {
     const pid = concept.part_id;
     if (count > 0) console.log('');
 
-    const stmt_sel_cc = this.getStatement('select_cat_con');
+    const stmt_sel_cc = this.pool.getStatement('select_cat_con');
     const cats = stmt_sel_cc.all(concept.id).map(c => c.name);
     const part = this.parts.getById(pid);
     console.log(`[${name}] => ${part} (${cats.join(', ')})`);
 
-    const stmt_sel_cww = this.getStatement('select_wlc');
+    const stmt_sel_cww = this.pool.getStatement('select_wlc');
     for (const word of stmt_sel_cww.iterate(concept.id)) {
       const lang = this.langs.getById(word.language_id);
       let display = word.name;
       const sel_extra = `select_extra_${part}_${lang}`;
-      if (this.haveStatement(sel_extra)) {
-        const stmt = this.getStatement(sel_extra);
+      if (this.pool.haveStatement(sel_extra)) {
+        const stmt = this.pool.getStatement(sel_extra);
         const data = stmt.get(word.id);
         if (data) {
           display += ` (${data.gender})`;
@@ -171,9 +99,9 @@ export class DB {
     let seen: IntToBool = {};
     for (const name of names) {
       const pat = `%${name}%`;
-      const stmt_sel_wnl = this.getStatement('select_words_like');
+      const stmt_sel_wnl = this.pool.getStatement('select_words_like');
       for (const word of stmt_sel_wnl.iterate(pat, l, l)) {
-        const stmt_sel_cwc = this.getStatement('select_concept_words');
+        const stmt_sel_cwc = this.pool.getStatement('select_concept_words');
         for (const concept of stmt_sel_cwc.iterate(word.id, 0, 0)) {
           this.showConcept(concept, name, count++, seen);
         }
@@ -184,7 +112,7 @@ export class DB {
   public listWords(options: Options) {
     const lang = options.lang || '';
     const l = lang ? this.langs.getByName(lang || Default.Language) : 0;
-    const stmt = this.getStatement('select_wl');
+    const stmt = this.pool.getStatement('select_wl');
     for (const row of stmt.iterate(l, l)) {
       console.log(row.language, row.word);
     }
@@ -192,7 +120,7 @@ export class DB {
 
   public showWords(categories: Array<string>, options: Options) {
     if (categories.length <= 0) {
-      const stmt = this.getStatement('select_cat');
+      const stmt = this.pool.getStatement('select_cat');
       for (const row of stmt.iterate()) {
         console.log(row.name);
       }
@@ -203,9 +131,9 @@ export class DB {
     let seen: IntToBool = {};
     for (const category of categories) {
       const pat = `%${category}%`;
-      const stmt_sel_cat = this.getStatement('select_cat_like');
+      const stmt_sel_cat = this.pool.getStatement('select_cat_like');
       for (const cat of stmt_sel_cat.iterate(pat)) {
-        const stmt_sel_con = this.getStatement('select_con_cat');
+        const stmt_sel_con = this.pool.getStatement('select_con_cat');
         for (const concept of stmt_sel_con.iterate(cat.id)) {
           this.showConcept(concept, cat.name, count++, seen);
         }
@@ -217,10 +145,10 @@ export class DB {
     const cats: StrToInt = {};
     const categories = options.categories || '';
     for (const category of categories.split(',')) {
-      const stmt_ins_cat = this.getStatement('insert_cat');
+      const stmt_ins_cat = this.pool.getStatement('insert_cat');
       stmt_ins_cat.run(category);
 
-      const stmt_sel_cat = this.getStatement('select_cat_equal');
+      const stmt_sel_cat = this.pool.getStatement('select_cat_equal');
       const data = stmt_sel_cat.get(category);
       if (data) {
         cats[data.name] = data.id;
@@ -247,22 +175,22 @@ export class DB {
         extra = separated[1];
       }
       const word = `${wlang}:${wn}`;
-      const stmt_ins_word = this.getStatement('insert_word');
+      const stmt_ins_word = this.pool.getStatement('insert_word');
       stmt_ins_word.run(wn, wl);
-      const stmt_sel_word = this.getStatement('select_w');
+      const stmt_sel_word = this.pool.getStatement('select_w');
       const data = stmt_sel_word.get(wn, wl);
       words[word] = data.id;
 
       const ins_extra = `insert_extra_${part}_${wlang}`;
-      if (this.haveStatement(ins_extra)) {
-        const stmt = this.getStatement(ins_extra);
+      if (this.pool.haveStatement(ins_extra)) {
+        const stmt = this.pool.getStatement(ins_extra);
         stmt.run(data.id, extra);
       }
     }
     let cid = -1;
     for (const word of Object.keys(words)) {
       const wid = words[word];
-      const stmt_sel_conc = this.getStatement('select_concept_words');
+      const stmt_sel_conc = this.pool.getStatement('select_concept_words');
       const concepts = stmt_sel_conc.all(wid, p, p);
       if (!concepts || concepts.length < 1) continue;
       if (concepts.length == 1) {
@@ -279,7 +207,7 @@ export class DB {
       return;
     }
     if (cid < 0) {
-      const stmt_ins_conc = this.getStatement('insert_concept');
+      const stmt_ins_conc = this.pool.getStatement('insert_concept');
       const info = stmt_ins_conc.run(p);
       cid = info.lastInsertRowid as number;
     }
@@ -288,12 +216,12 @@ export class DB {
       return;
     }
 
-    const stmt_ins_cc = this.getStatement('insert_cc');
+    const stmt_ins_cc = this.pool.getStatement('insert_cc');
     for (const cat of Object.keys(cats)) {
       stmt_ins_cc.run(cats[cat], cid);
     }
 
-    const stmt_ins_cw = this.getStatement('insert_concept_word');
+    const stmt_ins_cw = this.pool.getStatement('insert_concept_word');
     for (const word of Object.keys(words)) {
       // TODO: we could skip words that we know are already there for the concept
       stmt_ins_cw.run(cid, words[word]);
@@ -309,7 +237,7 @@ export class DB {
       l = this.langs.getByName(separated[0] || Default.Language);
       word = separated[1];
     }
-    const stmt_sel = this.getStatement('select_concept_words_notes');
+    const stmt_sel = this.pool.getStatement('select_concept_words_notes');
     const rows = stmt_sel.all(p, l, word);
     if (!rows || rows.length <= 0) {
       console.log('NOT FOUND');
@@ -321,7 +249,7 @@ export class DB {
     }
     const row = rows[0];
     const n = (row.note ? (row.note + '; ') : '') + note.join(' ');
-    const stmt_upd = this.getStatement('update_concept_word');
+    const stmt_upd = this.pool.getStatement('update_concept_word');
     stmt_upd.run(n, row.concept_id, row.word_id);
   }
 
@@ -374,19 +302,5 @@ export class DB {
       const sql = `CREATE TABLE IF NOT EXISTS ${table.name} ${table.definition}`;
       this.sql.exec(sql);
     }
-  }
-
-  private haveStatement(name: string) {
-    return (name in this.stmts);
-  }
-
-  private getStatement(name: string) {
-    let stmt = this.stmts[name];
-    if (!stmt) throw new Error(`Cannot find statement with name [${name}]`);
-    if (!stmt.prepared) {
-      // console.log(`Preparing statement [${name}]`);
-      stmt.prepared = this.sql.prepare(stmt.sql);
-    }
-    return stmt.prepared;
   }
 }
