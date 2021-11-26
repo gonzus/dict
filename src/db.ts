@@ -18,11 +18,14 @@
 //   6|noun|student|nl
 
 import * as SQLite from 'better-sqlite3';
+import type { Command } from 'commander';
 import { Options, Default, StrToInt, IntToBool } from './common';
 import { Builder } from './builder';
 import { Pool } from './pool';
 import { Mapping } from './mapping';
 import chalk from 'chalk';
+import Debug from 'debug';
+const log = Debug('db');
 
 interface Concept {
   id: number;
@@ -146,6 +149,7 @@ export class DB {
   }
 
   public addWords(part: string, names: Array<string>, options: Options) {
+    log('Adding words');
     const cats: StrToInt = {};
     const categories = options.categories || '';
     for (const category of categories.split(',')) {
@@ -233,6 +237,7 @@ export class DB {
   }
 
   public addNote(part: string, word: string, note: Array<string>, options: Options) {
+    log('Adding note');
     const lang = Default.Language;
     let l = this.langs.getByName(lang || Default.Language);
     const p = this.parts.getByName(part || Default.Part);
@@ -255,6 +260,20 @@ export class DB {
     const n = (row.note ? (row.note + '; ') : '') + note.join(' ');
     const stmt_upd = this.pool.getStatement('update_concept_word');
     stmt_upd.run(n, row.concept_id, row.word_id);
+  }
+
+  public runLines(lines: Array<string>, command: Command, options: Options) {
+    // Run all lines in a transaction.
+    // The speed difference is between 10x and 100x.
+    const runner = this.sql.transaction((lines, command) => {
+      for (const line of lines) {
+        if (line.match(/^\s*$/)) continue; // ignore empty lines
+        if (line.match(/^\s*#/)) continue; // ignore comments
+        const args = line.split(/\s+/);
+        command.parse(args, { from: 'user' });
+      }
+    });
+    runner(lines, command);
   }
 
   private setup() {

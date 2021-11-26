@@ -98,16 +98,15 @@ export class App {
 
   private loadFiles(files: Array<string>, options: Options) {
     for (const file of files) {
-      log(`Loading file [${file}]`);
-      const data = fs.readFileSync(file, 'utf-8');
-      const lines = data.split(/\r?\n/);
-      for (const line of lines) {
-        if (line.match(/^\s*$/)) continue; // ignore empty lines
-        if (line.match(/^\s*#/)) continue; // ignore comments
-        const args = line.split(/\s+/);
-        this.command.parse(args, { from: 'user' });
-      }
+      this.loadFile(file, options);
     }
+  }
+
+  private loadFile(file: string, options: Options) {
+    log(`Loading file [${file}]`);
+    const data = fs.readFileSync(file, 'utf-8');
+    const lines = data.split(/\r?\n/);
+    this.db.runLines(lines, this.command, options);
   }
 }
 
