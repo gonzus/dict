@@ -41,7 +41,7 @@ export class DB {
     this.setup();
 
     this.builder = new Builder(this.sql);
-    this.builder.maybeCreate();
+    this.builder.maybeCreateSchema();
 
     this.pool = new Pool(this.sql);
 
