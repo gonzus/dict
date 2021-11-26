@@ -1,4 +1,6 @@
 import * as SQLite from 'better-sqlite3';
+import Debug from 'debug';
+const log = Debug('pool');
 
 interface Statement {
   query: string;
@@ -87,7 +89,7 @@ export class Pool {
     let stmt = this.stmts[name];
     if (!stmt) throw new Error(`Cannot find statement in pool with name [${name}]`);
     if (!stmt.prepared) {
-      // console.log(`Preparing statement [${name}]`);
+      log(`Preparing statement [${name}]`);
       stmt.prepared = this.sql.prepare(stmt.query);
     }
     return stmt.prepared;

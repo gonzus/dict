@@ -24,6 +24,7 @@
     "better-sqlite3": "^7.4.4",
     "chalk": "^4.1.2",
     "commander": "^8.3.0",
-    "debug": "^4.3.2"
+    "debug": "^4.3.2",
+    "supports-color": "^9.2.1"
   }
 }

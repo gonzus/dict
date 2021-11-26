@@ -22,6 +22,7 @@ import { Options, Default, StrToInt, IntToBool } from './common';
 import { Builder } from './builder';
 import { Pool } from './pool';
 import { Mapping } from './mapping';
+import chalk from 'chalk';
 
 interface Concept {
   id: number;
@@ -206,7 +207,7 @@ export class DB {
       }
     }
     if (cid == -2) {
-      console.log('AMBIGUOUS CONCEPT');
+      error('AMBIGUOUS CONCEPT');
       return;
     }
     if (cid < 0) {
@@ -215,7 +216,7 @@ export class DB {
       cid = info.lastInsertRowid as number;
     }
     if (cid < 0) {
-      console.log('COULD NOT ADD CONCEPT');
+      error('COULD NOT ADD CONCEPT');
       return;
     }
 
@@ -243,11 +244,11 @@ export class DB {
     const stmt_sel = this.pool.getStatement('select_concept_words_notes');
     const rows = stmt_sel.all(p, l, word);
     if (!rows || rows.length <= 0) {
-      console.log('NOT FOUND');
+      error('WORD NOT FOUND');
       return;
     }
     if (rows.length > 1) {
-      console.log('AMBIGUOUS WORD');
+      error('AMBIGUOUS WORD');
       return;
     }
     const row = rows[0];
@@ -260,4 +261,8 @@ export class DB {
     // enforce foreign keys in the DB.
     this.sql.exec('PRAGMA foreign_keys = ON');
   }
+}
+
+function error(str: string) {
+  console.error(chalk.red(str));
 }
