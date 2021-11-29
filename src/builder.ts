@@ -2,6 +2,9 @@ import * as SQLite from 'better-sqlite3';
 import Debug from 'debug';
 const log = Debug('builder');
 
+/**
+ * Type describing an SQLite table column.
+ */
 interface Column {
   type: string;
   nullable?: boolean;
@@ -10,40 +13,65 @@ interface Column {
   name?: string;
 }
 
+/**
+ * Type describing a hash of SQLite table columns by name.
+ */
 interface TableColumns {
   [name: string]: Column;
 }
 
+/**
+ * Type describing an SQLite foreign key column reference.
+ */
 interface Reference {
   table: string;
   columns: Array<string>;
 }
 
+/**
+ * Type describing an SQLite table key.
+ */
 interface Key {
   columns: Array<string>;
   reference?: Reference;
 }
 
+/**
+ * Type describing all of an SQLite table' keys.
+ */
 interface TableKeys {
   primary: Key;
   unique?: Array<Key>;
   foreign?: Array<Key>;
 }
 
+/**
+ * Type describing an SQLite table.
+ */
 interface Table {
   columns: TableColumns;
   keys: TableKeys;
 }
 
+/**
+ * Type describing an SQLite schema (a hash of tables by name).
+ */
 interface Schema {
   [name: string]: Table;
 }
 
+/**
+ * A class that knows how to create a set of SQLite tables (if they don't
+ * already exist).
+ */
 export class Builder {
   constructor(private sql: SQLite.Database) {
   }
 
-  public maybeCreateSchema() {
+  /**
+   * Create all tables in the schema, but only if they don't already exist.
+   */
+  public maybeCreateSchema() : void {
     const schema: Schema = {
       languages: {
         columns: {
@@ -165,7 +193,7 @@ export class Builder {
     this.buildSchema(schema);
   }
 
-  private buildSchema(schema: Schema) {
+  private buildSchema(schema: Schema) : void {
     for (const tabName of Object.keys(schema)) {
       const table = schema[tabName];
       const query = this.buildTable(table, tabName);
@@ -174,7 +202,7 @@ export class Builder {
     }
   }
 
-  private buildTable(table: Table, tabName: string) {
+  private buildTable(table: Table, tabName: string) : string {
     const cols = [];
     for (const colName of Object.keys(table.columns)) {
       const col = table.columns[colName];
@@ -198,7 +226,7 @@ export class Builder {
     return sql;
   }
 
-  private buildCol(col: Column, colName: string) {
+  private buildCol(col: Column, colName: string) : string {
     let sql = `${colName} ${col.type}`;
     if (!col.nullable) {
       sql += ' NOT';
@@ -214,7 +242,7 @@ export class Builder {
     return sql;
   }
 
-  private buildKey(key: Key, label: string, useWordKey = true) {
+  private buildKey(key: Key, label: string, useWordKey = true) : string {
     let sql = label.toUpperCase();
     if (useWordKey) sql += ' KEY';
     sql += `(${key.columns.join(', ')})`;

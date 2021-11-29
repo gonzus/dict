@@ -4,15 +4,31 @@ import { Command } from 'commander';
 import { DB } from './db';
 import { Options, Program } from './common';
 
+/**
+ * Class to encapsulate our command-line application.
+ */
 export class App {
   private db: DB;
   private command: Command;
 
+  /**
+   * Class constructor.
+   */
   constructor() {
     this.db = new DB('dict.db');
     this.command = new Command();
 
     this.setup();
+  }
+
+  /**
+   * Run the application, parsing all args and executing the desired commands.
+   *
+   * @return A status code to return to the OS.
+   */
+  public run() : number {
+    this.command.parse();
+    return 0;
   }
 
   private setup() {
@@ -89,11 +105,6 @@ export class App {
         this.loadFiles(files, options);
       })
     ;
-  }
-
-  public run() : number {
-    this.command.parse();
-    return 0;
   }
 
   private loadFiles(files: Array<string>, options: Options) {

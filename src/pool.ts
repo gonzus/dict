@@ -2,17 +2,33 @@ import * as SQLite from 'better-sqlite3';
 import Debug from 'debug';
 const log = Debug('pool');
 
+/**
+ * Type describing a cached SQLite prepared Statement.
+ */
 interface Statement {
   query: string;
   prepared?: SQLite.Statement;
 }
+
+/**
+ * Type describing a pool of cached Statements.
+ */
 interface StatementPool {
   [name: string]: Statement;
 }
 
+/**
+ * Class to keep a pool of SQLite prepared statements, which are prepared
+ * on-demand the first time they are used.
+ */
 export class Pool {
   private stmts: StatementPool;
 
+  /**
+   * Class constructor.
+   *
+   * @param sql The SQLite database to use.
+   */
   constructor(private sql: SQLite.Database) {
     this.stmts = {
       'select_cat': {
@@ -81,10 +97,22 @@ export class Pool {
     };
   }
 
+  /**
+   * Determine whether a given name corresponds to a known statement.
+   *
+   * @param name The desired name.
+   * @return true if `name` is a known statement.
+   */
   public haveStatement(name: string) : boolean {
     return (name in this.stmts);
   }
 
+  /**
+   * Return the prepared statement associated with a given name.
+   *
+   * @param name The desired name.
+   * @return A prepared statement associated with the name.
+   */
   public getStatement(name: string) : SQLite.Statement {
     let stmt = this.stmts[name];
     if (!stmt) throw new Error(`Cannot find statement in pool with name [${name}]`);
